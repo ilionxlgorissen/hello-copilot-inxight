@@ -1,0 +1,5 @@
+com/inxight/service/UserService.class
+com/inxight/controller/UserController.class
+com/inxight/Application.class
+com/inxight/repository/UserRepository.class
+com/inxight/model/User.class
