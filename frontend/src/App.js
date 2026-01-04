@@ -1,116 +1,47 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
-import UserList from './components/UserList';
-import UserForm from './components/UserForm';
-import { getUsers, createUser, updateUser, deleteUser } from './services/userService';
+import LandingPage from './components/LandingPage';
+import AdminLogin from './components/AdminLogin';
+import AdminDashboard from './components/AdminDashboard';
+import ParticipantJoin from './components/ParticipantJoin';
+import authService from './services/authService';
+
+// Protected Route Component
+function ProtectedRoute({ children, requiredRole }) {
+  const user = authService.getCurrentUser();
+  
+  if (!authService.isAuthenticated()) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (requiredRole && user.role !== requiredRole) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
 
 function App() {
-  const [users, setUsers] = useState([]);
-  const [editingUser, setEditingUser] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    loadUsers();
-  }, []);
-
-  const loadUsers = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getUsers();
-      setUsers(data);
-    } catch (err) {
-      setError('Failed to load users. Please ensure the backend is running.');
-      console.error('Error loading users:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCreateUser = async (userData) => {
-    try {
-      setError(null);
-      await createUser(userData);
-      await loadUsers();
-    } catch (err) {
-      setError('Failed to create user: ' + (err.message || 'Unknown error'));
-      throw err;
-    }
-  };
-
-  const handleUpdateUser = async (id, userData) => {
-    try {
-      setError(null);
-      await updateUser(id, userData);
-      setEditingUser(null);
-      await loadUsers();
-    } catch (err) {
-      setError('Failed to update user: ' + (err.message || 'Unknown error'));
-      throw err;
-    }
-  };
-
-  const handleDeleteUser = async (id) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        setError(null);
-        await deleteUser(id);
-        await loadUsers();
-      } catch (err) {
-        setError('Failed to delete user: ' + (err.message || 'Unknown error'));
-        console.error('Error deleting user:', err);
-      }
-    }
-  };
-
-  const handleEditUser = (user) => {
-    setEditingUser(user);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingUser(null);
-  };
-
   return (
-    <div className="App">
-      <header className="App-header">
-        <h1>👋 Hello Copilot - User Management</h1>
-        <p>Manage users with Spring Boot backend and React frontend</p>
-      </header>
-
-      <main className="App-main">
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
-
-        <div className="content-container">
-          <section className="form-section">
-            <h2>{editingUser ? 'Edit User' : 'Add New User'}</h2>
-            <UserForm
-              user={editingUser}
-              onSubmit={editingUser ? handleUpdateUser : handleCreateUser}
-              onCancel={editingUser ? handleCancelEdit : null}
-            />
-          </section>
-
-          <section className="list-section">
-            <h2>Users List</h2>
-            {loading ? (
-              <div className="loading">Loading users...</div>
-            ) : (
-              <UserList
-                users={users}
-                onEdit={handleEditUser}
-                onDelete={handleDeleteUser}
-              />
-            )}
-          </section>
-        </div>
-      </main>
-    </div>
+    <Router>
+      <div className="App">
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/admin" element={<AdminLogin />} />
+          <Route 
+            path="/admin/dashboard" 
+            element={
+              <ProtectedRoute requiredRole="ADMIN">
+                <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route path="/participant" element={<ParticipantJoin />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
+    </Router>
   );
 }
 
